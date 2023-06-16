@@ -1,3 +1,6 @@
+# 이 파일은 빼고 올려라
+config.py
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

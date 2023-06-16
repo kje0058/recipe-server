@@ -14,6 +14,117 @@ from mysql_connection import get_connection
 # flask_restful 라이브러리의 Resource 클래스를!!!
 # 상속해서 만들어야 한다. 파이썬에서 상속은 괄호!
 # class 클래스이름(Resource) -- import 한 것
+# 경로가 다르면 class를 따로 만들어야함
+
+class RecipeResource(Resource) :
+
+    # GET 메소드에서 경로로 넘어오는 변수는 get 함수의 파라미터로 사용 
+    def get(self, recipe_id) :
+        # 1. 클라이언트로부터 데이터를 받아온다.
+        # 위의 recipe_id 에 담겨있다.
+        print(recipe_id)
+        print(type(recipe_id))
+        # 2. 데이터베이스에 레시피 아이디로 쿼리한다.
+        try :
+            connection = get_connection()
+
+            query = '''select *
+                    from recipe
+                    where id = %s;'''
+            
+            record = ( recipe_id, ) # 데이터가 1개면 튜플로 바꿔야함 / 무조건 튜플로 처리해야한다.
+
+            cursor = connection.cursor(dictionary=True)
+
+            cursor.execute( query, record )
+
+            result_list = cursor.fetchall()
+
+            print(result_list)
+
+            cursor.close()
+            connection.close()
+
+        except Error as e : 
+            print(e)
+            return {'result': 'fail', 'error':str(e)}
+
+        # 3. 데이터를 가공하고, 결과를 클라이언트에 응답한다.    
+
+        i = 0
+        for row in result_list : # result_list에서 행을 하나씩 가져온다
+            result_list[i]['createdAt'] = row['createdAt'].isoformat()
+            result_list[i]['updatedAt'] = row['updatedAt'].isoformat()
+            i = i + 1
+
+        if len(result_list) != 1: # 갯수를 확인하면 된다! 항상 비정상적인 것을 먼저해야함
+                return {'result' : 'success', 'item' : {}}
+        else : 
+            return {'result' : 'success', 'item' : result_list[0]}
+
+    def put(self, recipe_id) : 
+        # 1. 클라이언트로부터 데이터를 받아온다.(경로로 받아옴)
+        data = request.get_json() # body에 있는 json 데이터를 받아온다.
+        print(recipe_id)
+        print(data)
+
+        # 2. 데이터베이스에 update 한다.
+
+        try : 
+            connection = get_connection()
+
+            query = '''update recipe
+                    set name = %s, description = %s,
+                        num_of_servings = %s, cook_time = %s, directions = %s,
+                        is_publish = %s
+                    where id = %s;'''
+            
+            record = ( data['name'], data['description'], data['num_of_servings'],
+                      data['cook_time'], data['directions'], data['is_publish'], recipe_id )
+
+            cursor = connection.cursor()
+
+            cursor.execute(query, record) # 쿼리와 레코드를 불러온다.
+
+            connection.commit() # 수정한 것을 데이터베이스에 반영한다.
+
+            cursor.close()
+            connection.close()
+
+
+        except Error as e : 
+            print(e)
+            return {'result':'fail', 'error':str(e)}, 500
+
+        return {'result':'sucess'}
+    
+    def delete(self, recipe_id):
+        # 1. 클라이언트로부터 데이터를 받아온다.
+        print(recipe_id)
+        # 2. DB에서 삭제한다.
+        try : 
+            connection = get_connection()
+
+            query = '''delete from recipe
+                    where id=%s;'''
+            
+            record = ( recipe_id, )
+            
+            cursor = connection.cursor() 
+
+            cursor.execute(query, record) 
+
+            connection.commit()
+
+            cursor.close()
+            connection.close()
+        
+        except Error as e:
+            print(e)
+            return {'result' : 'fail', 'error' : str(e) }, 500
+
+        # 3. 결과를 응답한다.
+        return {'result' : 'success'}
 
 class RecipeListResource(Resource) :
 

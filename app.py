@@ -1,13 +1,10 @@
 from flask import Flask  #대문자 주의
 from flask_restful import Api
 from config import Config # 대문자 주의
-from resources.recipe import RecipeListResource
-from resources.recipe import RecipeResource
-from resources.user import UserRegisterResource
-from resources.user import UserLoginResource
+from resources.recipe import RecipeListResource, RecipeResource, RecipeMyListResource
+from resources.user import UserRegisterResource, UserLoginResource, UserLogoutResource, jwt_blocklist
 from flask_jwt_extended import JWTManager
-from resources.user import UserLogoutResource
-from resources.user import jwt_blocklist
+
 app = Flask(__name__)
 
 # 환경변수 셋팅
@@ -32,6 +29,7 @@ api = Api(app)
 # ex : http://127.0.0.1:5000/recipes 중 /recipes 가 path
 
 api.add_resource( RecipeListResource , '/recipes' )
+api.add_resource( RecipeMyListResource , '/recipes/mylist' )
 api.add_resource( RecipeResource , '/recipes/<int:recipe_id>' ) # <int:recipe_id> 플라스크의 문법
 api.add_resource( UserRegisterResource , '/user/register') # 만약 api가 없으면 생성해줄것
 api.add_resource( UserLoginResource , '/user/login')

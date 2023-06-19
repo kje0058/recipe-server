@@ -29,9 +29,11 @@ class RecipeResource(Resource) :
         try :
             connection = get_connection()
 
-            query = '''select *
-                    from recipe
-                    where id = %s;'''
+            query = '''select r.*, username
+                        from recipe r
+                        join user u
+                            on r.user_id = u.id
+                        where r.id = %s;'''
             
             record = ( recipe_id, ) # 데이터가 1개면 튜플로 바꿔야함 / 무조건 튜플로 처리해야한다.
 
@@ -63,11 +65,15 @@ class RecipeResource(Resource) :
         else : 
             return {'result' : 'success', 'item' : result_list[0]}
 
+    @jwt_required()
     def put(self, recipe_id) : 
         # 1. 클라이언트로부터 데이터를 받아온다.(경로로 받아옴)
         data = request.get_json() # body에 있는 json 데이터를 받아온다.
         print(recipe_id)
         print(data)
+
+        # user_id를 받아온다.
+        user_id = get_jwt_identity()
 
         # 2. 데이터베이스에 update 한다.
 
@@ -78,10 +84,11 @@ class RecipeResource(Resource) :
                     set name = %s, description = %s,
                         num_of_servings = %s, cook_time = %s, directions = %s,
                         is_publish = %s
-                    where id = %s;'''
+                    where id = %s and user_id = %s;'''
             
             record = ( data['name'], data['description'], data['num_of_servings'],
-                      data['cook_time'], data['directions'], data['is_publish'], recipe_id )
+                      data['cook_time'], data['directions'], data['is_publish'],
+                      recipe_id, user_id )
 
             cursor = connection.cursor()
 
@@ -92,24 +99,25 @@ class RecipeResource(Resource) :
             cursor.close()
             connection.close()
 
-
         except Error as e : 
             print(e)
             return {'result':'fail', 'error':str(e)}, 500
 
         return {'result':'sucess'}
     
+    @jwt_required()
     def delete(self, recipe_id):
         # 1. 클라이언트로부터 데이터를 받아온다.
+        user_id = get_jwt_identity() 
         print(recipe_id)
         # 2. DB에서 삭제한다.
         try : 
             connection = get_connection()
 
             query = '''delete from recipe
-                    where id=%s;'''
+                    where id = %s and user_id = %s;'''
             
-            record = ( recipe_id, )
+            record = ( recipe_id, user_id )
             
             cursor = connection.cursor() 
 
@@ -197,8 +205,6 @@ class RecipeListResource(Resource) :
         # 3. 에러가 났으면 에러났다고 알려주고(return)
         #    그렇지 않으면 잘 저장되었다고 알려준다.
 
-
-
         return {'result' : 'success'}
     
     def get(self) :
@@ -217,8 +223,11 @@ class RecipeListResource(Resource) :
             connection = get_connection()
 
             # 2-2. 쿼리문 만든다.
-            query = '''select * from recipe
-                    order by createdAt desc;'''
+            query = '''select r.*, u.username
+                    from recipe r
+                    join user u
+                        on r.user_id = u.id
+                    where is_publish = 1;'''
             
             # 2-3. 변수 처리할 부분은 변수처리한다.
             # 없음
@@ -253,3 +262,58 @@ class RecipeListResource(Resource) :
                  'count' : len(result_list),
                   'items' : result_list } 
     
+class RecipeMyListResource(Resource):
+
+    def get(self):
+        print("레시피 가져오는 API 동작했음.")
+
+        # 로직(순서)
+
+        # 1. 클라이언트로부터 데이터를 받아온다.       
+           
+        try :
+            
+            # 2. 저장된 레시피 리스트를 DB로부터 가져온다.
+
+            # 2-1. DB 커넥션
+            connection = get_connection()
+
+            # 2-2. 쿼리문 만든다.
+            query = '''select *
+                    from recipe
+                    where user_id = 5;'''
+            
+            # 2-3. 변수 처리할 부분은 변수처리한다.
+            # 없음
+
+            # 2-4. 커서 가져온다
+            cursor = connection.cursor(dictionary=True) # 딕셔너리 형태로 가지고온다.
+
+            # 2-5. 쿼리문을 커서로 실행한다.
+            cursor.execute(query)
+
+            # 2-6. 실행 결과를 가져온다.
+            result_list = cursor.fetchall() # 전부다 가지고와라
+            print(result_list)
+
+            cursor.close()
+            connection.close()
+
+        except Error as e : 
+            print(e)
+            return {'result' : 'fail', 'error':str(e)}, 500
+            # , 상태코드 : 내가 보낸 http 상태코드를 클라이언트한테 보냄
+        
+        # 3. 데이터 가공이 필요하면, 가공한 후에 클라이언트에 응답한다.
+
+        i = 0
+        for row in result_list : # result_list에서 행을 하나씩 가져온다
+            result_list[i]['createdAt'] = row['createdAt'].isoformat()
+            result_list[i]['updatedAt'] = row['updatedAt'].isoformat()
+            i = i + 1
+
+        return { 'result' : 'success',
+                 'count' : len(result_list),
+                  'items' : result_list } 
+    
+

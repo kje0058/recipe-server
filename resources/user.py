@@ -5,7 +5,7 @@ from mysql.connector import Error
 from mysql_connection import get_connection
 from email_validator import validate_email, EmailNotValidError
 from utils import check_password, hash_password
-from flask_jwt_extended import create_access_token
+from flask_jwt_extended import create_access_token, get_jwt, jwt_required
 import datetime
 
 class UserRegisterResource(Resource) : # 플라스크 라이브러리의 리소스에서 post get 등이 담긴 함수를 받아 씀
@@ -99,6 +99,7 @@ class UserRegisterResource(Resource) : # 플라스크 라이브러리의 리소�
 # 로그인 관련 개발
 
 class UserLoginResource(Resource) : 
+
     def post(self) :
         # 1. 클라이언트로부터 데이터를 받아온다.
         data = request.get_json()
@@ -151,3 +152,18 @@ class UserLoginResource(Resource) :
         # 로그인을 하면 내 정보를 가져와야함
         # 자동로그인에도 user_id가 필요하다.
         # user_id도 노출되면 안되므로 암호화 해야함. -> 인증토큰 처리해야함
+
+# 로그아웃
+# 로그아웃된 토큰을 저장할 set을 만든다.
+jwt_blocklist = set()
+
+class UserLogoutResource(Resource) : 
+
+    @jwt_required() # endpoint에 도달하기 전에 유효한 JWT 토큰을 갖고 있는지 확인한다
+    def delete(self) : 
+
+        jti = get_jwt()['jti']
+        print(jti)
+        jwt_blocklist.add(jti)
+
+        return { 'result' : 'success' }

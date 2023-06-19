@@ -1,3 +1,4 @@
+from flask_jwt_extended import get_jwt_identity, jwt_required
 from flask_restful import Resource # 리소스 라이브러리 데이터 동작 코드
 from flask import request
 import mysql.connector
@@ -128,6 +129,7 @@ class RecipeResource(Resource) :
 
 class RecipeListResource(Resource) :
 
+    @jwt_required()
     def post(self) :
 
         # 포스트로 요청한 것을 처리하는 코드 작성은 우리가!
@@ -136,6 +138,10 @@ class RecipeListResource(Resource) :
 
         # 1. 클라이언트가 보낸 데이터를 받아온다.
         data = request.get_json()
+
+        # 1-1. 헤더에 담긴 JWT 토큰(user_id)을 받아온다.
+        user_id = get_jwt_identity() #  회원가입이나 로그인할때 access token을 user_id로 만들어서
+        print(user_id)
         print(data)
         # 데이터 확인용으로 포스트맨에서 가져옴
         # {
@@ -158,9 +164,9 @@ class RecipeListResource(Resource) :
             #### 중요!! 컬럼과 매칭되는 데이터만 %s(포맷팅)로 바꿔준다._유저입력을 위해
             query = '''insert into recipe
                     (name, description, num_of_servings, cook_time,
-                        directions , is_publish)
+                        directions , is_publish, user_id)
                     values
-                    (%s, %s, %s, %s, %s, %s);'''
+                    (%s, %s, %s, %s, %s, %s, %s);'''
 
             
             # 2-3. 쿼리에 매칭되는 변수 처리! 중요!! 튜플로 처리!!
@@ -168,7 +174,8 @@ class RecipeListResource(Resource) :
                       data['num_of_servings'],
                        data['cook_time'],
                         data['directions'],
-                         data['is_publish'] )
+                         data['is_publish'],
+                          user_id )
             
             # 2-4. 커서를 가져온다.
             cursor = connection.cursor()

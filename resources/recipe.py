@@ -17,6 +17,99 @@ from mysql_connection import get_connection
 # class 클래스이름(Resource) -- import 한 것
 # 경로가 다르면 class를 따로 만들어야함
 
+class MyRecipeListResource(Resource) : 
+
+    @jwt_required()
+    def get(self) :
+        # 1. 클라이언트로부터 데이터를 가져온다
+        #    유저 아이디가 있으므로 복호화해서 가지고 옴
+        user_id = get_jwt_identity()     
+
+        try :
+            connection = get_connection() # DB 연결
+            query = '''select *
+                    from recipe
+                    where user_id = %s;'''
+            record = (user_id, )
+            cursor = connection.cursor(dictionary=True)
+            cursor.execute(query, record)
+
+            result_list = cursor.fetchall()
+            
+            cursor.close()
+            connection.close()
+
+        except Error as e:
+            print(e)
+            return {'result': 'fail', 'error':str(e)}, 500
+        
+        print(result_list) # 확인
+
+        i = 0
+        for row in result_list : # result_list에서 행을 하나씩 가져온다
+            result_list[i]['createdAt'] = row['createdAt'].isoformat()
+            result_list[i]['updatedAt'] = row['updatedAt'].isoformat()
+            i = i + 1
+ 
+        return {'result' : 'success', 'count':len(result_list), 'item' : result_list}
+
+
+class RecipePublishResource(Resource) :
+    
+    @jwt_required()
+    def put(self, recipe_id) : # 경로는 여기에
+
+        # 1.  클라이언트로부터 데이터를 받아온다.
+        # 1-1 경로에 레시피id가 있음, 헤더에 토큰이 있음
+        # 1-2 유저의 정보 토큰이 있음
+        user_id = get_jwt_identity()
+
+        # 2. DB 처리한다.
+        try :
+            connection = get_connection() # 커넥션을 가져온다
+            query = '''update recipe
+                    set is_publish = 1
+                    where id=%s and user_id=%s;'''
+            record = (recipe_id, user_id)
+            cursor = connection.cursor()
+            cursor.execute(query, record)
+            connection.commit()
+            cursor.close()
+            connection.close()
+
+        except Error as e :
+            print(e)
+            return {'result':'fail', 'error':str(e)}, 500
+        
+        return {'result':'success'}
+
+    @jwt_required()
+    def delete(self, recipe_id) : # 경로는 여기에
+
+        # 1.  클라이언트로부터 데이터를 받아온다.
+        # 1-1 경로에 레시피id가 있음, 헤더에 토큰이 있음
+        # 1-2 유저의 정보 토큰이 있음
+        user_id = get_jwt_identity()
+
+        # 2. DB 처리한다.
+        try :
+            connection = get_connection() # 커넥션을 가져온다
+            query = '''update recipe
+                    set is_publish = 0
+                    where id=%s and user_id=%s;'''
+            record = (recipe_id, user_id)
+            cursor = connection.cursor()
+            cursor.execute(query, record)
+            connection.commit()
+            cursor.close()
+            connection.close()
+
+        except Error as e :
+            print(e)
+            return {'result':'fail', 'error':str(e)}, 500
+        
+        return {'result':'success'}
+
 class RecipeResource(Resource) :
 
     # GET 메소드에서 경로로 넘어오는 변수는 get 함수의 파라미터로 사용 
@@ -261,59 +354,6 @@ class RecipeListResource(Resource) :
         return { 'result' : 'success',
                  'count' : len(result_list),
                   'items' : result_list } 
-    
-class RecipeMyListResource(Resource):
 
-    def get(self):
-        print("레시피 가져오는 API 동작했음.")
 
-        # 로직(순서)
-
-        # 1. 클라이언트로부터 데이터를 받아온다.       
-           
-        try :
-            
-            # 2. 저장된 레시피 리스트를 DB로부터 가져온다.
-
-            # 2-1. DB 커넥션
-            connection = get_connection()
-
-            # 2-2. 쿼리문 만든다.
-            query = '''select *
-                    from recipe
-                    where user_id = 5;'''
-            
-            # 2-3. 변수 처리할 부분은 변수처리한다.
-            # 없음
-
-            # 2-4. 커서 가져온다
-            cursor = connection.cursor(dictionary=True) # 딕셔너리 형태로 가지고온다.
-
-            # 2-5. 쿼리문을 커서로 실행한다.
-            cursor.execute(query)
-
-            # 2-6. 실행 결과를 가져온다.
-            result_list = cursor.fetchall() # 전부다 가지고와라
-            print(result_list)
-
-            cursor.close()
-            connection.close()
-
-        except Error as e : 
-            print(e)
-            return {'result' : 'fail', 'error':str(e)}, 500
-            # , 상태코드 : 내가 보낸 http 상태코드를 클라이언트한테 보냄
-        
-        # 3. 데이터 가공이 필요하면, 가공한 후에 클라이언트에 응답한다.
-
-        i = 0
-        for row in result_list : # result_list에서 행을 하나씩 가져온다
-            result_list[i]['createdAt'] = row['createdAt'].isoformat()
-            result_list[i]['updatedAt'] = row['updatedAt'].isoformat()
-            i = i + 1
-
-        return { 'result' : 'success',
-                 'count' : len(result_list),
-                  'items' : result_list } 
-    
 

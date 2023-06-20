@@ -1,7 +1,7 @@
 from flask import Flask  #대문자 주의
 from flask_restful import Api
 from config import Config # 대문자 주의
-from resources.recipe import RecipeListResource, RecipeResource, RecipeMyListResource
+from resources.recipe import RecipeListResource, RecipeResource, RecipePublishResource, MyRecipeListResource
 from resources.user import UserRegisterResource, UserLoginResource, UserLogoutResource, jwt_blocklist
 from flask_jwt_extended import JWTManager
 
@@ -29,12 +29,12 @@ api = Api(app)
 # ex : http://127.0.0.1:5000/recipes 중 /recipes 가 path
 
 api.add_resource( RecipeListResource , '/recipes' )
-api.add_resource( RecipeMyListResource , '/recipes/mylist' )
 api.add_resource( RecipeResource , '/recipes/<int:recipe_id>' ) # <int:recipe_id> 플라스크의 문법
 api.add_resource( UserRegisterResource , '/user/register') # 만약 api가 없으면 생성해줄것
 api.add_resource( UserLoginResource , '/user/login')
 api.add_resource( UserLogoutResource, '/user/logout' )
-
+api.add_resource( RecipePublishResource, '/recipes/<int:recipe_id>/publish' ) # 공개, 임시저장 둘다 put delete 이용
+api.add_resource( MyRecipeListResource, '/recipes/me' )
 # 폴더생성 : resources, 파일생성 : recipe.py
 
 if __name__ == '__main__' : 
